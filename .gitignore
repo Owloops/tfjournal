@@ -1,0 +1,23 @@
+# Binary
+tfjournal
+dist/
+
+# Test output
+*.test
+coverage.out
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local plan file (contains personal notes)
+*.local.md
+
+# Style guide (symlinked from dotfiles)
+GO.style.md
