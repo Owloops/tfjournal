@@ -27,6 +27,9 @@ func TestDetect_GitHubActions(t *testing.T) {
 }
 
 func TestDetect_NoCI(t *testing.T) {
+	t.Setenv("GITHUB_ACTIONS", "")
+	t.Setenv("GITLAB_CI", "")
+
 	info := Detect()
 	if info != nil {
 		t.Errorf("expected nil info, got %+v", info)
@@ -34,6 +37,9 @@ func TestDetect_NoCI(t *testing.T) {
 }
 
 func TestIsCI(t *testing.T) {
+	t.Setenv("GITHUB_ACTIONS", "")
+	t.Setenv("GITLAB_CI", "")
+
 	if IsCI() {
 		t.Error("expected IsCI() = false when not in CI")
 	}
