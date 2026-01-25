@@ -3,6 +3,7 @@ package storage
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -83,6 +84,13 @@ func DefaultPath() string {
 	if xdg := os.Getenv("XDG_DATA_HOME"); xdg != "" {
 		return filepath.Join(xdg, "tfjournal")
 	}
+
+	if runtime.GOOS == "windows" {
+		if localAppData := os.Getenv("LOCALAPPDATA"); localAppData != "" {
+			return filepath.Join(localAppData, "tfjournal")
+		}
+	}
+
 	home, _ := os.UserHomeDir()
 	return filepath.Join(home, ".local", "share", "tfjournal")
 }
