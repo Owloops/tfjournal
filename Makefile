@@ -5,8 +5,16 @@ BINARY := tfjournal
 help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "%-12s %s\n", $$1, $$2}'
 
-build: ## Build binary
+web: ## Build web UI
+	cd web && npm install && npm run build
+	rm -rf cmd/serve/dist
+	cp -r web/dist cmd/serve/
+
+build: web ## Build binary
 	go build -ldflags="-s -w" -o $(BINARY) .
+
+dev: ## Run web UI dev server (vite)
+	cd web && npm run dev
 
 test: ## Run tests
 	go test -v ./...
@@ -35,4 +43,4 @@ install: build ## Install to GOPATH/bin
 clean: ## Remove build artifacts
 	rm -f $(BINARY)
 
-.PHONY: help build test lint fmt vet check install clean
+.PHONY: help web build dev test lint fmt vet check install clean

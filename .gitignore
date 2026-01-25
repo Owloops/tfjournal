@@ -1,6 +1,10 @@
 # Binary
 tfjournal
-dist/
+
+# Web build artifacts
+web/dist/
+web/node_modules/
+cmd/serve/dist/
 
 # Test output
 *.test
