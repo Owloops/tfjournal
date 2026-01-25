@@ -17,7 +17,10 @@ import (
 var (
 	since      string
 	user       string
-	failed     bool
+	status     string
+	program    string
+	branch     string
+	hasChanges bool
 	limit      int
 	jsonOutput bool
 )
@@ -30,7 +33,10 @@ var Cmd = &cobra.Command{
 Example:
   tfjournal list
   tfjournal list --since 7d
-  tfjournal list --failed
+  tfjournal list --status failed
+  tfjournal list --program tofu
+  tfjournal list --branch main
+  tfjournal list --has-changes
   tfjournal list production/*`,
 	RunE: runList,
 }
@@ -38,7 +44,10 @@ Example:
 func init() {
 	Cmd.Flags().StringVar(&since, "since", "", "Show runs since duration (e.g., 7d, 24h)")
 	Cmd.Flags().StringVar(&user, "user", "", "Filter by user")
-	Cmd.Flags().BoolVar(&failed, "failed", false, "Show only failed runs")
+	Cmd.Flags().StringVar(&status, "status", "", "Filter by status (success, failed)")
+	Cmd.Flags().StringVar(&program, "program", "", "Filter by program (terraform, tofu, terragrunt)")
+	Cmd.Flags().StringVar(&branch, "branch", "", "Filter by git branch")
+	Cmd.Flags().BoolVar(&hasChanges, "has-changes", false, "Show only runs with actual changes")
 	Cmd.Flags().IntVarP(&limit, "limit", "n", 20, "Maximum number of runs to show")
 	Cmd.Flags().BoolVar(&jsonOutput, "json", false, "Output as JSON")
 }
@@ -70,8 +79,17 @@ func runList(cmd *cobra.Command, args []string) error {
 		opts.Since = time.Now().Add(-d)
 	}
 
-	if failed {
-		opts.Status = run.StatusFailed
+	if status != "" {
+		opts.Status = run.Status(status)
+	}
+	if program != "" {
+		opts.Program = program
+	}
+	if branch != "" {
+		opts.Branch = branch
+	}
+	if hasChanges {
+		opts.HasChanges = true
 	}
 
 	runs, err := store.ListRuns(opts)
