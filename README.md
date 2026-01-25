@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="assets/tfjournal.svg" alt="tfjournal logo" width="128"/>
+
 # tfjournal
 
 Record Terraform runs with git context, timing, and resource events.
