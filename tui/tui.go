@@ -19,8 +19,8 @@ const (
 	_timelineTitle = "Timeline"
 	_eventsTitle   = "Events"
 	_outputTitle   = "Output"
-	_helpText      = "q:quit j/k:nav s:sync /:search ?:hide"
-	_helpTextLocal = "q:quit j/k:nav /:search ?:hide"
+	_footerText    = "tfjournal · j/k:nav d/e/t/o:views /:search ?:help"
+	_footerTextS3  = "tfjournal · j/k:nav s:sync d/e/t/o:views /:search ?:help"
 	_searchPrefix  = "/"
 	_noRunsMessage = "No runs found. Use 'tfjournal -- terraform apply' to record runs."
 )
@@ -62,14 +62,16 @@ type App struct {
 	showHelp     bool
 	focus        focusPanel
 
-	grid         *ui.Grid
-	runsList     *widgets.List
-	detailsView  *widgets.Paragraph
-	eventsTable  *widgets.Table
-	ganttChart   *GanttChart
-	outputView   *widgets.List
-	helpWidget   *widgets.Paragraph
-	searchWidget *widgets.Paragraph
+	grid          *ui.Grid
+	runsList      *widgets.List
+	detailsView   *widgets.Paragraph
+	eventsTable   *widgets.Table
+	ganttChart    *GanttChart
+	outputView    *widgets.List
+	footerWidget  *widgets.Paragraph
+	searchWidget  *widgets.Paragraph
+	filtersWidget *widgets.Paragraph
+	tabsWidget    *widgets.Paragraph
 
 	viewMode     viewMode
 	outputLines  []string
@@ -223,28 +225,41 @@ func (a *App) initWidgets() {
 	a.outputView.TitleStyle.Fg = ui.ColorWhite
 	a.outputView.WrapText = false
 
-	a.helpWidget = widgets.NewParagraph()
-	if a.hybrid != nil {
-		a.helpWidget.Text = _helpText
-	} else {
-		a.helpWidget.Text = _helpTextLocal
-	}
-	a.helpWidget.Border = true
-	a.helpWidget.BorderStyle.Fg = ui.ColorWhite
-	a.helpWidget.TextStyle.Fg = ui.ColorWhite
-
 	a.searchWidget = widgets.NewParagraph()
-	a.searchWidget.Title = "Search"
+	a.searchWidget.Border = true
 	a.searchWidget.BorderStyle.Fg = ui.ColorCyan
-	a.searchWidget.Text = "Press / to search"
+	a.searchWidget.Text = "/ to search..."
 	a.searchWidget.TextStyle.Fg = ui.ColorWhite
+
+	a.filtersWidget = widgets.NewParagraph()
+	a.filtersWidget.Border = true
+	a.filtersWidget.BorderStyle.Fg = ui.ColorWhite
+	a.filtersWidget.TextStyle.Fg = ui.ColorWhite
+	a.updateFiltersText()
+
+	a.tabsWidget = widgets.NewParagraph()
+	a.tabsWidget.Border = true
+	a.tabsWidget.BorderStyle.Fg = ui.ColorCyan
+	a.tabsWidget.TextStyle.Fg = ui.ColorWhite
+	a.updateTabsText()
+
+	a.footerWidget = widgets.NewParagraph()
+	a.footerWidget.Border = true
+	a.footerWidget.BorderStyle.Fg = ui.ColorWhite
+	a.footerWidget.TextStyle.Fg = ui.ColorWhite
+	if a.hybrid != nil {
+		a.footerWidget.Text = _footerTextS3
+	} else {
+		a.footerWidget.Text = _footerText
+	}
 }
 
 func (a *App) setupGrid() {
 	a.grid = ui.NewGrid()
 	a.grid.SetRect(0, 0, a.termWidth, a.termHeight)
 
-	a.updateTabTitle()
+	a.updateTabsText()
+	a.updateFiltersText()
 
 	var contentWidget ui.Drawable
 	switch a.viewMode {
@@ -258,26 +273,65 @@ func (a *App) setupGrid() {
 		contentWidget = a.outputView
 	}
 
-	searchHeight := 3.0 / float64(a.termHeight)
-	leftPanel := ui.NewCol(0.3,
-		ui.NewRow(searchHeight, a.searchWidget),
-		ui.NewRow(1.0-searchHeight, a.runsList),
-	)
+	const widgetRows = 3
+	termH := float64(a.termHeight)
+
+	searchProp := float64(widgetRows) / termH
+	filtersProp := float64(widgetRows) / termH
+	tabsProp := float64(widgetRows) / termH
+	footerProp := float64(widgetRows) / termH
 
 	if a.showHelp {
-		helpHeight := 3.0 / float64(a.termHeight)
-		rightPanel := ui.NewCol(0.7,
-			ui.NewRow(helpHeight, a.helpWidget),
-			ui.NewRow(1.0-helpHeight, contentWidget),
+
+		mainProp := 1.0 - footerProp
+
+		leftSearchProp := searchProp / mainProp
+		leftFiltersProp := filtersProp / mainProp
+		leftRunsProp := 1.0 - leftSearchProp - leftFiltersProp
+
+		rightTabsProp := tabsProp / mainProp
+		rightContentProp := 1.0 - rightTabsProp
+
+		a.grid.Set(
+			ui.NewRow(mainProp,
+				ui.NewCol(0.3,
+					ui.NewRow(leftSearchProp, a.searchWidget),
+					ui.NewRow(leftFiltersProp, a.filtersWidget),
+					ui.NewRow(leftRunsProp, a.runsList),
+				),
+				ui.NewCol(0.7,
+					ui.NewRow(rightTabsProp, a.tabsWidget),
+					ui.NewRow(rightContentProp, contentWidget),
+				),
+			),
+			ui.NewRow(footerProp, ui.NewCol(1.0, a.footerWidget)),
 		)
-		a.grid.Set(ui.NewRow(1.0, leftPanel, rightPanel))
 	} else {
-		rightPanel := ui.NewCol(0.7, contentWidget)
-		a.grid.Set(ui.NewRow(1.0, leftPanel, rightPanel))
+
+		runsProp := 1.0 - searchProp - filtersProp
+		contentProp := 1.0 - tabsProp
+
+		a.grid.Set(
+			ui.NewRow(1.0,
+				ui.NewCol(0.3,
+					ui.NewRow(searchProp, a.searchWidget),
+					ui.NewRow(filtersProp, a.filtersWidget),
+					ui.NewRow(runsProp, a.runsList),
+				),
+				ui.NewCol(0.7,
+					ui.NewRow(tabsProp, a.tabsWidget),
+					ui.NewRow(contentProp, contentWidget),
+				),
+			),
+		)
 	}
 }
 
-func (a *App) updateTabTitle() {
+func (a *App) updateTabsText() {
+	if a.tabsWidget == nil {
+		return
+	}
+
 	tabs := []struct {
 		mode  viewMode
 		key   string
@@ -292,18 +346,51 @@ func (a *App) updateTabTitle() {
 	var parts []string
 	for _, tab := range tabs {
 		if a.viewMode == tab.mode {
-			parts = append(parts, fmt.Sprintf("▶ %s:%s", tab.key, tab.label))
+			parts = append(parts, fmt.Sprintf("[▶ %s:%s](fg:cyan)", tab.key, tab.label))
 		} else {
 			parts = append(parts, fmt.Sprintf("  %s:%s", tab.key, tab.label))
 		}
 	}
 
-	title := strings.Join(parts, " │ ")
+	a.tabsWidget.Text = strings.Join(parts, " │ ")
+}
 
-	a.detailsView.Title = title
-	a.eventsTable.Title = title
-	a.ganttChart.Title = title
-	a.outputView.Title = title
+func (a *App) updateFiltersText() {
+	if a.filtersWidget == nil {
+		return
+	}
+
+	var parts []string
+
+	if a.listOpts.Status != "" {
+		parts = append(parts, fmt.Sprintf("status:%s", a.listOpts.Status))
+	}
+
+	if !a.listOpts.Since.IsZero() {
+		parts = append(parts, "since:custom")
+	}
+
+	if a.listOpts.Program != "" {
+		parts = append(parts, fmt.Sprintf("program:%s", a.listOpts.Program))
+	}
+
+	if a.listOpts.Branch != "" {
+		parts = append(parts, fmt.Sprintf("branch:%s", a.listOpts.Branch))
+	}
+
+	if a.listOpts.HasChanges {
+		parts = append(parts, "has-changes")
+	}
+
+	if a.listOpts.Limit > 0 {
+		parts = append(parts, fmt.Sprintf("limit:%d", a.listOpts.Limit))
+	}
+
+	if len(parts) == 0 {
+		a.filtersWidget.Text = "no filters"
+	} else {
+		a.filtersWidget.Text = strings.Join(parts, " │ ")
+	}
 }
 
 func (a *App) updateRunsList() {
@@ -589,7 +676,7 @@ func (a *App) eventLoop() error {
 			if payload, ok := e.Payload.(ui.Resize); ok {
 				a.termWidth = payload.Width
 				a.termHeight = payload.Height
-				a.grid.SetRect(0, 0, a.termWidth, a.termHeight)
+				a.setupGrid()
 				ui.Render(a.grid)
 			}
 		case "j", "<Down>":
@@ -637,7 +724,7 @@ func (a *App) eventLoop() error {
 func (a *App) enterSearch() {
 	a.searchMode = true
 	a.searchQuery = ""
-	a.searchWidget.Text = "Type to filter..."
+	a.searchWidget.Text = "type to filter..."
 	a.searchWidget.BorderStyle.Fg = ui.ColorGreen
 	ui.Render(a.grid)
 }
@@ -645,7 +732,7 @@ func (a *App) enterSearch() {
 func (a *App) exitSearch() {
 	a.searchMode = false
 	a.searchQuery = ""
-	a.searchWidget.Text = "Press / to search"
+	a.searchWidget.Text = "/ to search..."
 	a.searchWidget.BorderStyle.Fg = ui.ColorCyan
 	a.applySearch()
 }
@@ -776,7 +863,7 @@ func (a *App) navigate(direction int) {
 
 func (a *App) applySearch() {
 	if a.searchQuery == "" {
-		a.searchWidget.Text = "Type to filter..."
+		a.searchWidget.Text = "type to filter..."
 	} else {
 		a.searchWidget.Text = _searchPrefix + a.searchQuery
 	}
