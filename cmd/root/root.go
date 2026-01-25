@@ -14,6 +14,7 @@ import (
 
 	"github.com/Owloops/tfjournal/ci"
 	"github.com/Owloops/tfjournal/cmd/list"
+	"github.com/Owloops/tfjournal/cmd/serve"
 	"github.com/Owloops/tfjournal/cmd/show"
 	"github.com/Owloops/tfjournal/git"
 	"github.com/Owloops/tfjournal/parser"
@@ -25,9 +26,14 @@ import (
 var Version = "dev"
 
 var (
-	workspace string
-	since     string
-	limit     int
+	workspace     string
+	since         string
+	limit         int
+	statusFilter  string
+	userFilter    string
+	programFilter string
+	branchFilter  string
+	hasChanges    bool
 )
 
 var rootCmd = &cobra.Command{
@@ -54,9 +60,15 @@ func init() {
 	rootCmd.Flags().StringVarP(&workspace, "workspace", "w", "", "Workspace name (default: auto-detected)")
 	rootCmd.Flags().StringVar(&since, "since", "", "Show runs since duration (e.g., 7d, 24h)")
 	rootCmd.Flags().IntVarP(&limit, "limit", "n", 100, "Maximum number of runs to show (0 for all)")
+	rootCmd.Flags().StringVar(&statusFilter, "status", "", "Filter by status (success, failed)")
+	rootCmd.Flags().StringVar(&userFilter, "user", "", "Filter by user")
+	rootCmd.Flags().StringVar(&programFilter, "program", "", "Filter by program (terraform, tofu, terragrunt)")
+	rootCmd.Flags().StringVar(&branchFilter, "branch", "", "Filter by git branch")
+	rootCmd.Flags().BoolVar(&hasChanges, "has-changes", false, "Show only runs with actual changes")
 
 	rootCmd.AddCommand(list.Cmd)
 	rootCmd.AddCommand(show.Cmd)
+	rootCmd.AddCommand(serve.Cmd)
 }
 
 func Execute() error {
@@ -230,6 +242,21 @@ func runTUI() error {
 			return fmt.Errorf("invalid duration: %w", err)
 		}
 		opts.Since = time.Now().Add(-d)
+	}
+	if statusFilter != "" {
+		opts.Status = run.Status(statusFilter)
+	}
+	if userFilter != "" {
+		opts.User = userFilter
+	}
+	if programFilter != "" {
+		opts.Program = programFilter
+	}
+	if branchFilter != "" {
+		opts.Branch = branchFilter
+	}
+	if hasChanges {
+		opts.HasChanges = true
 	}
 
 	app := tui.New(store, opts)
