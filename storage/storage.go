@@ -16,11 +16,14 @@ const (
 )
 
 type ListOptions struct {
-	Workspace string
-	Since     time.Time
-	Status    run.Status
-	User      string
-	Limit     int
+	Workspace  string
+	Since      time.Time
+	Status     run.Status
+	User       string
+	Program    string
+	Branch     string
+	HasChanges bool
+	Limit      int
 }
 
 type Store interface {
@@ -117,6 +120,25 @@ func matchesFilter(r *run.Run, opts ListOptions) bool {
 
 	if opts.User != "" && r.User != opts.User {
 		return false
+	}
+
+	if opts.Program != "" && r.Program != opts.Program {
+		return false
+	}
+
+	if opts.Branch != "" {
+		if r.Git == nil || r.Git.Branch != opts.Branch {
+			return false
+		}
+	}
+
+	if opts.HasChanges {
+		if r.Changes == nil {
+			return false
+		}
+		if r.Changes.Add == 0 && r.Changes.Change == 0 && r.Changes.Destroy == 0 {
+			return false
+		}
 	}
 
 	return true
