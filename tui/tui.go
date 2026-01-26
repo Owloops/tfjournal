@@ -448,6 +448,10 @@ func (a *App) updateRunsList() {
 }
 
 func (a *App) updateDetails() {
+	a.updateDetailsWithOutput(true)
+}
+
+func (a *App) updateDetailsWithOutput(loadOutput bool) {
 	a.mu.Lock()
 	runs := a.filteredRuns
 	idx := a.selectedIdx
@@ -459,10 +463,10 @@ func (a *App) updateDetails() {
 	}
 
 	r := runs[idx]
-	a.updateContentPane(r)
+	a.updateContentPaneWithOutput(r, loadOutput)
 }
 
-func (a *App) updateContentPane(r *run.Run) {
+func (a *App) updateContentPaneWithOutput(r *run.Run, loadOutput bool) {
 	switch a.viewMode {
 	case viewModeDetails:
 		a.updateDetailsPane(r)
@@ -474,7 +478,9 @@ func (a *App) updateContentPane(r *run.Run) {
 		a.ganttChart.SetData(r)
 
 	case viewModeOutput:
-		a.updateOutputPane(r)
+		if loadOutput {
+			a.updateOutputPane(r)
+		}
 	}
 }
 
@@ -533,21 +539,33 @@ func (a *App) updateDetailsPane(r *run.Run) {
 }
 
 func (a *App) updateOutputPane(r *run.Run) {
-	output, err := a.store.GetOutput(r.ID)
-	if err != nil {
-		a.outputView.Rows = []string{fmt.Sprintf("Failed to load output: %v", err)}
-		return
-	}
-	if len(output) == 0 {
-		a.outputView.Rows = []string{"No output recorded for this run."}
-		return
-	}
-
-	lines := strings.Split(string(output), "\n")
-	a.outputLines = lines
-	a.outputView.Rows = lines
+	a.outputView.Rows = []string{"Loading output..."}
 	a.outputView.SelectedRow = 0
 	a.outputScroll = 0
+
+	go func() {
+		output, err := a.store.GetOutput(r.ID)
+
+		a.mu.Lock()
+		if a.selectedIdx < len(a.filteredRuns) && a.filteredRuns[a.selectedIdx].ID != r.ID {
+			a.mu.Unlock()
+			return
+		}
+		a.mu.Unlock()
+
+		if err != nil {
+			a.outputView.Rows = []string{"No output available"}
+		} else if len(output) == 0 {
+			a.outputView.Rows = []string{"No output recorded for this run."}
+		} else {
+			lines := strings.Split(string(output), "\n")
+			a.outputLines = lines
+			a.outputView.Rows = lines
+		}
+		a.outputView.SelectedRow = 0
+		a.outputScroll = 0
+		ui.Render(a.grid)
+	}()
 }
 
 func (a *App) updateEventsTable(r *run.Run) {
@@ -846,7 +864,7 @@ func (a *App) navigate(direction int) {
 	}
 
 	a.runsList.SelectedRow = a.selectedIdx
-	a.updateDetails()
+	a.updateDetailsWithOutput(a.viewMode == viewModeOutput)
 	ui.Render(a.grid)
 }
 
