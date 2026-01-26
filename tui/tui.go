@@ -798,21 +798,28 @@ func (a *App) syncRuns() {
 }
 
 func (a *App) uploadAndRefresh() {
-	localRuns, _ := a.hybrid.ListLocalRuns(a.listOpts)
-	s3Runs, _ := a.hybrid.ListS3Runs(a.listOpts)
+	_, _ = a.hybrid.Sync()
+	a.refreshSyncStatus()
+}
 
-	s3Set := make(map[string]bool)
-	for _, r := range s3Runs {
-		s3Set[r.ID] = true
-	}
+func (a *App) refreshSyncStatus() {
+	remoteIDs, err := a.hybrid.ListS3RunIDs()
 
-	for _, r := range localRuns {
-		if !s3Set[r.ID] {
-			_ = a.hybrid.UploadRun(r.ID)
+	a.mu.Lock()
+	a.isLoading = false
+	if err == nil {
+		for _, r := range a.runs {
+			if remoteIDs[r.ID] {
+				r.SyncStatus = run.SyncStatusSynced
+			} else {
+				r.SyncStatus = run.SyncStatusLocal
+			}
 		}
 	}
+	a.mu.Unlock()
 
-	a.fetchS3Runs()
+	a.updateRunsList()
+	ui.Render(a.grid)
 }
 
 func (a *App) switchView(mode viewMode) {
