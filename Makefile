@@ -7,8 +7,8 @@ help: ## Show this help
 
 web: ## Build web UI
 	cd web && npm install && npm run build
-	rm -rf cmd/serve/dist
-	cp -r web/dist cmd/serve/
+	rm -rf server/dist
+	cp -r web/dist server/
 
 build: web ## Build binary
 	go build -ldflags="-s -w" -o $(BINARY) .
