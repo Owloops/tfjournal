@@ -182,8 +182,23 @@ func (h *HybridStore) ListLocalRuns(opts ListOptions) ([]*run.Run, error) {
 	return h.local.ListRuns(opts)
 }
 
+func (h *HybridStore) ListRunsLocal(opts ListOptions) ([]*run.Run, error) {
+	runs, err := h.local.ListRuns(opts)
+	if err != nil {
+		return nil, err
+	}
+	for _, r := range runs {
+		r.SyncStatus = run.SyncStatusLocal
+	}
+	return runs, nil
+}
+
 func (h *HybridStore) ListS3Runs(opts ListOptions) ([]*run.Run, error) {
 	return h.s3.ListRuns(opts)
+}
+
+func (h *HybridStore) ListS3RunIDs() (map[string]bool, error) {
+	return h.s3.ListRunIDs()
 }
 
 func (h *HybridStore) UploadRun(id string) error {
@@ -216,4 +231,30 @@ func (h *HybridStore) DownloadRun(id string) error {
 		_ = h.local.SaveOutput(id, output)
 	}
 	return nil
+}
+
+func (h *HybridStore) Sync() (*SyncResult, error) {
+	result := &SyncResult{}
+
+	localRuns, err := h.local.ListRuns(ListOptions{Limit: 0})
+	if err != nil {
+		return result, err
+	}
+
+	remoteSet, err := h.s3.ListRunIDs()
+	if err != nil {
+		return result, err
+	}
+
+	for _, r := range localRuns {
+		if !remoteSet[r.ID] {
+			if err := h.UploadRun(r.ID); err != nil {
+				result.Errors++
+			} else {
+				result.Uploaded++
+			}
+		}
+	}
+
+	return result, nil
 }

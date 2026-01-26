@@ -33,14 +33,22 @@ type ListOptions struct {
 	Limit      int
 }
 
+type SyncResult struct {
+	Uploaded   int `json:"uploaded"`
+	Downloaded int `json:"downloaded"`
+	Errors     int `json:"errors"`
+}
+
 type Store interface {
 	SaveRun(r *run.Run) error
 	GetRun(id string) (*run.Run, error)
 	ListRuns(opts ListOptions) ([]*run.Run, error)
+	ListRunsLocal(opts ListOptions) ([]*run.Run, error)
 	SaveOutput(runID string, output []byte) error
 	GetOutput(runID string) ([]byte, error)
 	OutputPath(runID string) string
 	DeleteRun(id string) error
+	Sync() (*SyncResult, error)
 	Close() error
 }
 

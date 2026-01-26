@@ -219,6 +219,38 @@ func (s *S3Store) DeleteRun(id string) error {
 	return err
 }
 
+func (s *S3Store) ListRunIDs() (map[string]bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), _s3Timeout)
+	defer cancel()
+
+	prefix := s.prefix + _runsDir + "/"
+
+	paginator := s3.NewListObjectsV2Paginator(s.client, &s3.ListObjectsV2Input{
+		Bucket: aws.String(s.bucket),
+		Prefix: aws.String(prefix),
+	})
+
+	ids := make(map[string]bool)
+
+	for paginator.HasMorePages() {
+		page, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list S3 objects: %w", err)
+		}
+
+		for _, obj := range page.Contents {
+			key := aws.ToString(obj.Key)
+			if !strings.HasSuffix(key, ".json") {
+				continue
+			}
+			id := strings.TrimSuffix(strings.TrimPrefix(key, prefix), ".json")
+			ids[id] = true
+		}
+	}
+
+	return ids, nil
+}
+
 func (s *S3Store) runKey(id string) string {
 	return s.prefix + _runsDir + "/" + id + ".json"
 }

@@ -148,3 +148,11 @@ func (s *LocalStore) HasRun(id string) bool {
 	_, err := os.Stat(s.runPath(id))
 	return err == nil
 }
+
+func (s *LocalStore) Sync() (*SyncResult, error) {
+	return &SyncResult{}, nil
+}
+
+func (s *LocalStore) ListRunsLocal(opts ListOptions) ([]*run.Run, error) {
+	return s.ListRuns(opts)
+}

@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <!-- 4: Stacked hexagons - history/layers of runs -->
-  <path d="M32 24 L50 34 L50 50 L32 60 L14 50 L14 34 Z" fill="#3b82f6"/>
-  <path d="M32 14 L50 24 L50 40 L32 50 L14 40 L14 24 Z" fill="none" stroke="#3b82f6" stroke-width="2.5" opacity="0.5"/>
-  <path d="M32 4 L50 14 L50 30 L32 40 L14 30 L14 14 Z" fill="none" stroke="#3b82f6" stroke-width="2" opacity="0.25"/>
-</svg>
