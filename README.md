@@ -118,7 +118,7 @@ alias tg='tfjournal -- terragrunt'
 tfjournal serve
 ```
 
-Opens at http://localhost:8080. Same features as TUI with mouse support.
+Opens at <http://localhost:8080>. Same features as TUI with mouse support.
 
 <img src="assets/web.png" alt="tfjournal web ui" width="800"/>
 
@@ -251,4 +251,4 @@ Flags:
 ---
 
 > [!NOTE]
-> This project was built with assistance from LLMs. Human review and guidance provided throughout.
+> This project was built with assistance from LLMs. Human review and guidance provided where needed..
