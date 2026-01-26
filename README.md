@@ -247,3 +247,8 @@ Flags:
 ## License
 
 [MIT](LICENSE)
+
+---
+
+> [!NOTE]
+> This project was built with assistance from LLMs. Human review and guidance provided throughout.
