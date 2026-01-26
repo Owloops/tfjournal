@@ -179,6 +179,7 @@ func (a *App) initWidgets() {
 	a.eventsTable.TitleStyle.Fg = ui.ColorWhite
 	a.eventsTable.TextStyle = ui.NewStyle(ui.ColorWhite)
 	a.eventsTable.RowSeparator = false
+	a.eventsTable.Rows = [][]string{{"No run selected"}}
 
 	a.ganttChart = NewGanttChart()
 	a.ganttChart.BorderStyle.Fg = ui.ColorBlue
@@ -455,6 +456,8 @@ func (a *App) updateDetailsWithOutput(loadOutput bool) {
 
 	if len(runs) == 0 || idx >= len(runs) {
 		a.detailsView.Text = "No run selected"
+		a.eventsTable.Rows = [][]string{{"No run selected"}}
+		a.outputView.Rows = []string{"No run selected"}
 		return
 	}
 
