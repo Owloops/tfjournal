@@ -79,9 +79,13 @@ type Resource struct {
 }
 
 func NewID() string {
+	return GenerateID(time.Now())
+}
+
+func GenerateID(t time.Time) string {
 	b := make([]byte, 4)
 	_, _ = rand.Read(b)
-	return "run_" + hex.EncodeToString(b)
+	return fmt.Sprintf("run_%s_%s", t.Format("20060102T150405"), hex.EncodeToString(b))
 }
 
 func (r *Run) Duration() time.Duration {
@@ -105,13 +109,20 @@ func formatChanges(add, change, destroy int) string {
 	return "+" + strconv.Itoa(add) + " ~" + strconv.Itoa(change) + " -" + strconv.Itoa(destroy)
 }
 
-var idPattern = regexp.MustCompile(`^run_[0-9a-f]{8}$`)
+var idPattern = regexp.MustCompile(`^run_\d{8}T\d{6}_[0-9a-f]{8}$`)
 
 func ValidateID(id string) error {
 	if !idPattern.MatchString(id) {
 		return fmt.Errorf("invalid run ID format: %s", id)
 	}
 	return nil
+}
+
+func ParseDateFromID(id string) (time.Time, error) {
+	if !strings.HasPrefix(id, "run_") || len(id) < 20 {
+		return time.Time{}, fmt.Errorf("invalid run ID format: %s", id)
+	}
+	return time.Parse("20060102T150405", id[4:19])
 }
 
 func ParseDuration(s string) (time.Duration, error) {
