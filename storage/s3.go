@@ -8,6 +8,7 @@ import (
 	"io"
 	"sort"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -120,8 +121,7 @@ func (s *S3Store) ListRuns(opts ListOptions) ([]*run.Run, error) {
 		Prefix: aws.String(prefix),
 	})
 
-	var runs []*run.Run
-
+	var ids []string
 	for paginator.HasMorePages() {
 		page, err := paginator.NextPage(ctx)
 		if err != nil {
@@ -133,20 +133,40 @@ func (s *S3Store) ListRuns(opts ListOptions) ([]*run.Run, error) {
 			if !strings.HasSuffix(key, ".json") {
 				continue
 			}
-
 			id := strings.TrimSuffix(strings.TrimPrefix(key, prefix), ".json")
+			ids = append(ids, id)
+		}
+	}
+
+	const maxConcurrent = 10
+	sem := make(chan struct{}, maxConcurrent)
+	var mu sync.Mutex
+	var runs []*run.Run
+	var wg sync.WaitGroup
+
+	for _, id := range ids {
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(id string) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
 			r, err := s.GetRun(id)
 			if err != nil {
-				continue
+				return
 			}
 
 			if !matchesFilter(r, opts) {
-				continue
+				return
 			}
 
+			mu.Lock()
 			runs = append(runs, r)
-		}
+			mu.Unlock()
+		}(id)
 	}
+
+	wg.Wait()
 
 	sort.Slice(runs, func(i, j int) bool {
 		return runs[i].Timestamp.After(runs[j].Timestamp)

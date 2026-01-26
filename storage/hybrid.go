@@ -10,18 +10,23 @@ import (
 	"github.com/Owloops/tfjournal/run"
 )
 
-const _uploadTimeout = _s3Timeout
+const (
+	_uploadTimeout = _s3Timeout
+	_maxConcurrent = 10
+)
 
 type HybridStore struct {
 	local *LocalStore
 	s3    *S3Store
 	wg    sync.WaitGroup
+	sem   chan struct{}
 }
 
 func NewHybridStore(local *LocalStore, s3 *S3Store) *HybridStore {
 	return &HybridStore{
 		local: local,
 		s3:    s3,
+		sem:   make(chan struct{}, _maxConcurrent),
 	}
 }
 
@@ -41,12 +46,22 @@ func (h *HybridStore) Close() error {
 	return h.local.Close()
 }
 
+func (h *HybridStore) goBackground(fn func()) {
+	h.wg.Add(1)
+	go func() {
+		defer h.wg.Done()
+		h.sem <- struct{}{}
+		defer func() { <-h.sem }()
+		fn()
+	}()
+}
+
 func (h *HybridStore) SaveRun(r *run.Run) error {
 	if err := h.local.SaveRun(r); err != nil {
 		return err
 	}
 
-	h.wg.Go(func() {
+	h.goBackground(func() {
 		if err := h.s3.SaveRun(r); err != nil {
 			fmt.Fprintf(os.Stderr, "tfjournal: failed to sync run to S3: %v\n", err)
 		}
@@ -65,8 +80,9 @@ func (h *HybridStore) GetRun(id string) (*run.Run, error) {
 		return nil, err
 	}
 
-	h.wg.Go(func() {
-		_ = h.local.SaveRun(r)
+	clone := *r
+	h.goBackground(func() {
+		_ = h.local.SaveRun(&clone)
 	})
 
 	return r, nil
@@ -134,7 +150,7 @@ func (h *HybridStore) SaveOutput(runID string, output []byte) error {
 		return err
 	}
 
-	h.wg.Go(func() {
+	h.goBackground(func() {
 		if err := h.s3.SaveOutput(runID, output); err != nil {
 			fmt.Fprintf(os.Stderr, "tfjournal: failed to sync output to S3: %v\n", err)
 		}
@@ -153,8 +169,10 @@ func (h *HybridStore) GetOutput(runID string) ([]byte, error) {
 		return nil, err
 	}
 
-	h.wg.Go(func() {
-		_ = h.local.SaveOutput(runID, output)
+	clone := make([]byte, len(output))
+	copy(clone, output)
+	h.goBackground(func() {
+		_ = h.local.SaveOutput(runID, clone)
 	})
 
 	return output, nil
@@ -176,10 +194,6 @@ func (h *HybridStore) DeleteRun(id string) error {
 
 func (h *HybridStore) IsLocal(id string) bool {
 	return h.local.HasRun(id)
-}
-
-func (h *HybridStore) ListLocalRuns(opts ListOptions) ([]*run.Run, error) {
-	return h.local.ListRuns(opts)
 }
 
 func (h *HybridStore) ListRunsLocal(opts ListOptions) ([]*run.Run, error) {

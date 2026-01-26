@@ -127,13 +127,9 @@ func (a *App) loadRuns() error {
 }
 
 func (a *App) loadRunsHybrid() error {
-	localRuns, err := a.hybrid.ListLocalRuns(a.listOpts)
+	localRuns, err := a.hybrid.ListRunsLocal(a.listOpts)
 	if err != nil {
 		return fmt.Errorf("failed to load runs: %w", err)
-	}
-
-	for _, r := range localRuns {
-		r.SyncStatus = run.SyncStatusLocal
 	}
 
 	a.mu.Lock()
