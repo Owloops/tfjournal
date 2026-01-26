@@ -40,7 +40,7 @@ const limitFilter = document.getElementById('limitFilter')
 const viewTabs = document.querySelectorAll('.tab')
 const helpModal = document.getElementById('helpModal')
 
-async function fetchRuns() {
+function buildParams() {
   const params = new URLSearchParams()
   if (state.statusFilter) params.set('status', state.statusFilter)
   if (state.sinceFilter) params.set('since', state.sinceFilter)
@@ -48,7 +48,18 @@ async function fetchRuns() {
   if (state.branchFilter) params.set('branch', state.branchFilter)
   if (state.hasChangesFilter) params.set('has-changes', 'true')
   if (state.limit) params.set('limit', state.limit.toString())
+  return params
+}
 
+async function fetchRunsLocal() {
+  const params = buildParams()
+  const response = await fetch(`/api/runs/local?${params}`)
+  if (!response.ok) throw new Error('Failed to fetch local runs')
+  return response.json()
+}
+
+async function fetchRuns() {
+  const params = buildParams()
   const response = await fetch(`/api/runs?${params}`)
   if (!response.ok) throw new Error('Failed to fetch runs')
   return response.json()
@@ -437,9 +448,24 @@ function escapeHtml(text) {
 async function selectRun(id, index) {
   state.selectedRunId = id
   state.selectedIndex = index
-  state.selectedRun = await fetchRun(id)
-  renderRunsList()
-  await renderContent()
+
+  const cachedRun = state.runs.find(r => r.id === id)
+  if (cachedRun) {
+    state.selectedRun = cachedRun
+    renderRunsList()
+    renderContent()
+
+    fetchRun(id).then(fullRun => {
+      if (state.selectedRunId === id) {
+        state.selectedRun = fullRun
+        renderContent()
+      }
+    }).catch(() => {})
+  } else {
+    state.selectedRun = await fetchRun(id)
+    renderRunsList()
+    await renderContent()
+  }
 }
 
 function selectRunByIndex(index) {
@@ -458,16 +484,29 @@ function setView(view) {
 
 async function loadRuns() {
   runsList.innerHTML = '<div class="loading">Loading runs...</div>'
+
   try {
-    state.runs = (await fetchRuns()) || []
+    state.runs = (await fetchRunsLocal()) || []
   } catch {
     state.runs = []
     runsList.innerHTML = '<div class="empty-state"><p>Failed to load runs</p></div>'
     return
   }
+
   filterRuns()
   renderRunsList()
+  selectFirstIfNeeded()
 
+  fetchRuns().then((mergedRuns) => {
+    if (mergedRuns && mergedRuns.length > 0) {
+      state.runs = mergedRuns
+      filterRuns()
+      renderRunsList()
+    }
+  }).catch(() => {})
+}
+
+function selectFirstIfNeeded() {
   if (state.filteredRuns.length > 0) {
     const currentStillExists =
       state.selectedRunId && state.filteredRuns.some((r) => r.id === state.selectedRunId)
@@ -656,6 +695,10 @@ function handleKeyDown(e) {
       toggleHelp()
       e.preventDefault()
       break
+    case 's':
+      syncRuns()
+      e.preventDefault()
+      break
     case 'Escape':
       state.focusPanel = 'runs'
       break
@@ -764,6 +807,38 @@ async function loadVersion() {
   if (version && footerVersion) {
     footerVersion.textContent = version
   }
+}
+
+async function syncRuns() {
+  const syncBtn = document.getElementById('syncBtn')
+  if (!syncBtn) return
+
+  const originalText = syncBtn.textContent
+  syncBtn.textContent = 'syncing...'
+  syncBtn.disabled = true
+
+  try {
+    const response = await fetch('/api/sync', { method: 'POST' })
+    if (!response.ok) throw new Error('Sync failed')
+    const result = await response.json()
+    syncBtn.textContent = `✓ ↑${result.uploaded} ↓${result.downloaded}`
+    setTimeout(() => {
+      syncBtn.textContent = originalText
+    }, 2000)
+    loadRuns()
+  } catch {
+    syncBtn.textContent = '✗ sync failed'
+    setTimeout(() => {
+      syncBtn.textContent = originalText
+    }, 2000)
+  } finally {
+    syncBtn.disabled = false
+  }
+}
+
+const syncBtn = document.getElementById('syncBtn')
+if (syncBtn) {
+  syncBtn.addEventListener('click', syncRuns)
 }
 
 loadRuns()
