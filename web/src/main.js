@@ -448,6 +448,7 @@ function escapeHtml(text) {
 async function selectRun(id, index) {
   state.selectedRunId = id
   state.selectedIndex = index
+  updateURL()
 
   const cachedRun = state.runs.find(r => r.id === id)
   if (cachedRun) {
@@ -479,6 +480,7 @@ function setView(view) {
   viewTabs.forEach((tab) => {
     tab.classList.toggle('active', tab.dataset.view === view)
   })
+  updateURL()
   renderContent()
 }
 
@@ -616,6 +618,7 @@ function clearFilter(key) {
       break
   }
   updateFilterUI()
+  updateURL()
   loadRuns()
 }
 
@@ -705,11 +708,15 @@ function handleKeyDown(e) {
   }
 }
 
-searchInput.addEventListener('input', (e) => {
-  state.searchQuery = e.target.value
-  filterRuns()
-  renderRunsList()
-})
+searchInput.addEventListener(
+  'input',
+  debounce((e) => {
+    state.searchQuery = e.target.value
+    filterRuns()
+    renderRunsList()
+    updateURL()
+  }, 300)
+)
 
 searchInput.addEventListener('focus', () => {
   searchInput.placeholder = 'Search runs...'
@@ -744,18 +751,21 @@ document.addEventListener('click', (e) => {
 statusFilter.addEventListener('change', (e) => {
   state.statusFilter = e.target.value
   updateFilterUI()
+  updateURL()
   loadRuns()
 })
 
 sinceFilter.addEventListener('change', (e) => {
   state.sinceFilter = e.target.value
   updateFilterUI()
+  updateURL()
   loadRuns()
 })
 
 programFilter.addEventListener('change', (e) => {
   state.programFilter = e.target.value
   updateFilterUI()
+  updateURL()
   loadRuns()
 })
 
@@ -764,6 +774,7 @@ branchFilter.addEventListener(
   debounce((e) => {
     state.branchFilter = e.target.value
     updateFilterUI()
+    updateURL()
     loadRuns()
   }, 300)
 )
@@ -771,11 +782,13 @@ branchFilter.addEventListener(
 hasChangesFilter.addEventListener('change', (e) => {
   state.hasChangesFilter = e.target.checked
   updateFilterUI()
+  updateURL()
   loadRuns()
 })
 
 limitFilter.addEventListener('change', (e) => {
   state.limit = parseInt(e.target.value, 10)
+  updateURL()
   loadRuns()
 })
 
@@ -841,5 +854,70 @@ if (syncBtn) {
   syncBtn.addEventListener('click', syncRuns)
 }
 
-loadRuns()
-loadVersion()
+function updateURL() {
+  const params = new URLSearchParams()
+  if (state.selectedRunId) params.set('run', state.selectedRunId)
+  if (state.currentView !== 'details') params.set('view', state.currentView)
+  if (state.searchQuery) params.set('q', state.searchQuery)
+  if (state.statusFilter) params.set('status', state.statusFilter)
+  if (state.sinceFilter) params.set('since', state.sinceFilter)
+  if (state.programFilter) params.set('program', state.programFilter)
+  if (state.branchFilter) params.set('branch', state.branchFilter)
+  if (state.hasChangesFilter) params.set('changes', '1')
+  if (state.limit !== 20) params.set('limit', state.limit.toString())
+
+  const url = params.toString() ? `?${params}` : window.location.pathname
+  history.replaceState(null, '', url)
+}
+
+function loadFromURL() {
+  const params = new URLSearchParams(window.location.search)
+
+  state.searchQuery = params.get('q') || ''
+  state.statusFilter = params.get('status') || ''
+  state.sinceFilter = params.get('since') || ''
+  state.programFilter = params.get('program') || ''
+  state.branchFilter = params.get('branch') || ''
+  state.hasChangesFilter = params.get('changes') === '1'
+  state.limit = parseInt(params.get('limit'), 10) || 20
+  state.currentView = params.get('view') || 'details'
+
+  searchInput.value = state.searchQuery
+  statusFilter.value = state.statusFilter
+  sinceFilter.value = state.sinceFilter
+  programFilter.value = state.programFilter
+  branchFilter.value = state.branchFilter
+  hasChangesFilter.checked = state.hasChangesFilter
+  limitFilter.value = state.limit.toString()
+
+  viewTabs.forEach((tab) => {
+    tab.classList.toggle('active', tab.dataset.view === state.currentView)
+  })
+
+  updateFilterUI()
+
+  return params.get('run')
+}
+
+async function init() {
+  const runIdFromURL = loadFromURL()
+  await loadRuns()
+
+  if (runIdFromURL) {
+    const index = state.filteredRuns.findIndex((r) => r.id === runIdFromURL)
+    if (index >= 0) {
+      selectRun(runIdFromURL, index)
+    } else {
+      try {
+        state.selectedRunId = runIdFromURL
+        state.selectedRun = await fetchRun(runIdFromURL)
+        state.selectedIndex = -1
+        renderContent()
+      } catch {}
+    }
+  }
+
+  loadVersion()
+}
+
+init()
