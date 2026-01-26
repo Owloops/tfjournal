@@ -1,6 +1,7 @@
 package serve
 
 import (
+	"crypto/subtle"
 	"embed"
 	"encoding/json"
 	"fmt"
@@ -52,8 +53,30 @@ func runServe(cmd *cobra.Command, args []string) error {
 	h := newHandler(store)
 	addr := fmt.Sprintf("%s:%d", _bindAddr, _port)
 
-	fmt.Fprintf(os.Stderr, "tfjournal web ui: http://%s\n", addr)
-	return http.ListenAndServe(addr, h)
+	username := os.Getenv("TFJOURNAL_USERNAME")
+	password := os.Getenv("TFJOURNAL_PASSWORD")
+
+	var finalHandler http.Handler = h
+	if username != "" && password != "" {
+		finalHandler = basicAuthMiddleware(h, username, password)
+		fmt.Fprintf(os.Stderr, "tfjournal web ui: http://%s (basic auth enabled)\n", addr)
+	} else {
+		fmt.Fprintf(os.Stderr, "tfjournal web ui: http://%s\n", addr)
+	}
+
+	return http.ListenAndServe(addr, finalHandler)
+}
+
+func basicAuthMiddleware(next http.Handler, username, password string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Basic realm="tfjournal"`)
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 type handler struct {
