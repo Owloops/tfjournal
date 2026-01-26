@@ -11,6 +11,8 @@ Record Terraform runs with git context, timing, and resource events.
 [![Go Report Card](https://goreportcard.com/badge/github.com/Owloops/tfjournal)](https://goreportcard.com/report/github.com/Owloops/tfjournal)
 [![CI/CD](https://github.com/Owloops/tfjournal/actions/workflows/release.yml/badge.svg)](https://github.com/Owloops/tfjournal/actions/workflows/release.yml)
 
+<img src="assets/demo.gif" alt="tfjournal demo" width="800"/>
+
 </div>
 
 ## Features
@@ -166,6 +168,8 @@ tfjournal serve
 ```
 
 Opens at http://localhost:8080. Same features as TUI with mouse support.
+
+<img src="assets/web.png" alt="tfjournal web ui" width="800"/>
 
 ### Configuration
 
