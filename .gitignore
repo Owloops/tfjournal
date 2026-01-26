@@ -5,6 +5,7 @@ tfjournal
 web/dist/
 web/node_modules/
 cmd/serve/dist/
+server/dist/
 
 # Test output
 *.test
