@@ -90,7 +90,7 @@ tfjournal -- terraform apply
 tfjournal -w prod -- tofu plan
 
 # Works with terragrunt
-tfjournal -- terragrunt run-all apply
+tfjournal -- terragrunt apply
 
 # Open TUI
 tfjournal
@@ -111,55 +111,6 @@ alias tf='tfjournal -- terraform'
 alias tofu='tfjournal -- tofu'
 alias tg='tfjournal -- terragrunt'
 ```
-
-## TUI
-
-Run `tfjournal` without arguments:
-
-```
-┌───────────────┬─────────────────────────────────────────────────┐
-│ Search        │ q:quit j/k:nav s:sync /:search ?:hide           │
-├───────────────┼─────────────────────────────────────────────────┤
-│ Runs (47)     │ ▶ d:Details │ e:Events │ t:Timeline │ o:Output  │
-│               ├─────────────────────────────────────────────────┤
-│ ✓ 01-23 +1~0  │ Run:        run_abc123                          │
-│ ✗ 01-22 +0~1  │ Workspace:  production/alb                      │
-│ ✓ 01-22 +3~0  │ Status:     ✓ SUCCESS                           │
-│               │ Duration:   2m34s                               │
-│               │ User:       papuna                              │
-│               │ Git:        abc123 (main)                       │
-└───────────────┴─────────────────────────────────────────────────┘
-```
-
-### Views
-
-| Key | View | Description |
-|-----|------|-------------|
-| `d` | Details | Run metadata, git info, resource list |
-| `e` | Events | Table of resource changes with duration |
-| `t` | Timeline | Gantt chart of resource execution |
-| `o` | Output | Captured command output |
-
-### Keys
-
-| Key | Action |
-|-----|--------|
-| `j/k` | Navigate runs |
-| `g/G` | First/last run |
-| `Enter` | Focus content panel for scrolling |
-| `Escape` | Back to runs list, clear search |
-| `/` | Search |
-| `s` | Sync to S3 |
-| `?` | Toggle help |
-| `q` | Quit |
-
-### Sync Indicators
-
-With S3 configured:
-
-- `✓` local and S3
-- `↓` local only
-- `↑` S3 only
 
 ## Web UI
 
@@ -192,9 +143,10 @@ TFJOURNAL_USERNAME=admin TFJOURNAL_PASSWORD=secret tfjournal serve --bind 0.0.0.
 export TFJOURNAL_S3_BUCKET=my-tfjournal
 export TFJOURNAL_S3_REGION=us-east-1
 export TFJOURNAL_S3_PREFIX=team-a  # optional
+export AWS_PROFILE=my-profile      # optional, uses default credentials if not set
 ```
 
-Without these variables, tfjournal uses local storage only.
+Without `TFJOURNAL_S3_BUCKET`, tfjournal uses local storage only.
 
 Writes go to local storage first, then upload to S3 in the background. The TUI loads local runs immediately and fetches S3 runs in the background.
 
@@ -224,7 +176,7 @@ Each run records:
   "duration_ms": 154000,
   "status": "success",
   "program": "terraform",
-  "user": "papuna",
+  "user": "john",
   "git": {
     "commit": "abc123",
     "branch": "main",
@@ -232,7 +184,7 @@ Each run records:
   },
   "ci": {
     "provider": "github-actions",
-    "actor": "papuna"
+    "actor": "john"
   },
   "changes": { "add": 2, "change": 0, "destroy": 0 },
   "resources": [
