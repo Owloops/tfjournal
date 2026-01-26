@@ -371,10 +371,30 @@ body {
 }
 
 .run-changes {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: var(--color-text-muted);
   white-space: nowrap;
+}
+
+.sync-icon {
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.sync-local {
+  color: var(--color-warning);
+}
+
+.sync-remote {
+  color: var(--color-primary);
+}
+
+.sync-synced {
+  color: var(--color-accent);
 }
 
 .run-item-meta {

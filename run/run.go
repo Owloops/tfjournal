@@ -16,6 +16,14 @@ const (
 	StatusCanceled Status = "canceled"
 )
 
+type SyncStatus string
+
+const (
+	SyncStatusLocal  SyncStatus = "local"
+	SyncStatusRemote SyncStatus = "remote"
+	SyncStatusSynced SyncStatus = "synced"
+)
+
 type Run struct {
 	ID         string     `json:"id"`
 	Workspace  string     `json:"workspace"`
@@ -32,6 +40,7 @@ type Run struct {
 	Changes    *Changes   `json:"changes,omitempty"`
 	Resources  []Resource `json:"resources,omitempty"`
 	OutputFile string     `json:"output_file,omitempty"`
+	SyncStatus SyncStatus `json:"sync_status,omitempty"`
 }
 
 type CIInfo struct {

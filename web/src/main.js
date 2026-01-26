@@ -105,6 +105,19 @@ function formatChanges(changes) {
   return parts.join(' ') || '+0'
 }
 
+function formatSyncStatus(syncStatus) {
+  switch (syncStatus) {
+    case 'local':
+      return '<span class="sync-icon sync-local" title="Local only (not synced to S3)">↑</span>'
+    case 'remote':
+      return '<span class="sync-icon sync-remote" title="Remote only (not downloaded)">↓</span>'
+    case 'synced':
+      return '<span class="sync-icon sync-synced" title="Synced">✓</span>'
+    default:
+      return ''
+  }
+}
+
 function filterRuns() {
   const query = state.searchQuery.toLowerCase()
   state.filteredRuns = state.runs.filter((run) => {
@@ -133,7 +146,7 @@ function renderRunsList() {
       <div class="run-item-header">
         <div class="run-status ${run.status}"></div>
         <div class="run-workspace">${escapeHtml(run.workspace)}</div>
-        <div class="run-changes">${formatChanges(run.changes)}</div>
+        <div class="run-changes">${formatChanges(run.changes)}${formatSyncStatus(run.sync_status)}</div>
       </div>
       <div class="run-item-meta">
         <span class="run-time">${formatTimestamp(run.timestamp)}</span>

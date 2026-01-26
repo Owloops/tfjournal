@@ -34,14 +34,6 @@ const (
 	viewModeOutput
 )
 
-type syncStatus int
-
-const (
-	syncLocal syncStatus = iota
-	syncRemote
-	syncBoth
-)
-
 type focusPanel int
 
 const (
@@ -55,7 +47,6 @@ type App struct {
 	listOpts     storage.ListOptions
 	runs         []*run.Run
 	filteredRuns []*run.Run
-	syncStatus   map[string]syncStatus
 	selectedIdx  int
 	searchMode   bool
 	searchQuery  string
@@ -93,7 +84,6 @@ func New(store storage.Store, opts storage.ListOptions, version string) *App {
 		searchMode:  false,
 		showHelp:    true,
 		viewMode:    viewModeDetails,
-		syncStatus:  make(map[string]syncStatus),
 		version:     version,
 	}
 	if h, ok := store.(*storage.HybridStore); ok {
@@ -142,13 +132,14 @@ func (a *App) loadRunsHybrid() error {
 		return fmt.Errorf("failed to load runs: %w", err)
 	}
 
+	for _, r := range localRuns {
+		r.SyncStatus = run.SyncStatusLocal
+	}
+
 	a.mu.Lock()
 	a.runs = localRuns
 	a.filteredRuns = localRuns
 	a.isLoading = true
-	for _, r := range localRuns {
-		a.syncStatus[r.ID] = syncLocal
-	}
 	a.mu.Unlock()
 
 	go a.fetchS3Runs()
@@ -156,41 +147,16 @@ func (a *App) loadRunsHybrid() error {
 }
 
 func (a *App) fetchS3Runs() {
-	localRuns, _ := a.hybrid.ListLocalRuns(a.listOpts)
-	localSet := make(map[string]bool)
-	for _, r := range localRuns {
-		localSet[r.ID] = true
-	}
-
-	s3Runs, s3Err := a.hybrid.ListS3Runs(a.listOpts)
-	s3Set := make(map[string]bool)
-	if s3Err == nil {
-		for _, r := range s3Runs {
-			s3Set[r.ID] = true
-		}
-	}
-
 	allRuns, err := a.store.ListRuns(a.listOpts)
 
 	a.mu.Lock()
 	a.isLoading = false
-	a.isOffline = s3Err != nil
 	if err == nil {
 		a.runs = allRuns
 		a.filteredRuns = filterRuns(allRuns, a.searchQuery)
-
-		for _, r := range allRuns {
-			inLocal := localSet[r.ID]
-			inS3 := s3Set[r.ID]
-			switch {
-			case inLocal && inS3:
-				a.syncStatus[r.ID] = syncBoth
-			case inLocal:
-				a.syncStatus[r.ID] = syncLocal
-			case inS3:
-				a.syncStatus[r.ID] = syncRemote
-			}
-		}
+		a.isOffline = false
+	} else {
+		a.isOffline = true
 	}
 	a.mu.Unlock()
 
@@ -416,7 +382,6 @@ func (a *App) updateRunsList() {
 	totalRuns := len(a.runs)
 	isLoading := a.isLoading
 	isOffline := a.isOffline
-	status := a.syncStatus
 	a.mu.Unlock()
 
 	if len(runs) == 0 {
@@ -443,12 +408,12 @@ func (a *App) updateRunsList() {
 
 		syncIcon := ""
 		if a.hybrid != nil {
-			switch status[r.ID] {
-			case syncLocal:
-				syncIcon = " [↓](fg:yellow)"
-			case syncRemote:
-				syncIcon = " [↑](fg:blue)"
-			case syncBoth:
+			switch r.SyncStatus {
+			case run.SyncStatusLocal:
+				syncIcon = " [↑](fg:yellow)"
+			case run.SyncStatusRemote:
+				syncIcon = " [↓](fg:blue)"
+			case run.SyncStatusSynced:
 				syncIcon = " [✓](fg:cyan)"
 			}
 		}

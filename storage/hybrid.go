@@ -78,8 +78,11 @@ func (h *HybridStore) ListRuns(opts ListOptions) ([]*run.Run, error) {
 		return nil, err
 	}
 
-	s3Runs, err := h.s3.ListRuns(opts)
-	if err != nil {
+	s3Runs, s3Err := h.s3.ListRuns(opts)
+	if s3Err != nil {
+		for _, r := range localRuns {
+			r.SyncStatus = run.SyncStatusLocal
+		}
 		return localRuns, nil
 	}
 
@@ -87,16 +90,30 @@ func (h *HybridStore) ListRuns(opts ListOptions) ([]*run.Run, error) {
 }
 
 func (h *HybridStore) mergeRuns(local, remote []*run.Run, limit int) []*run.Run {
-	seen := make(map[string]bool)
+	localSet := make(map[string]bool)
+	remoteSet := make(map[string]bool)
+
+	for _, r := range local {
+		localSet[r.ID] = true
+	}
+	for _, r := range remote {
+		remoteSet[r.ID] = true
+	}
+
 	var merged []*run.Run
 
 	for _, r := range local {
-		seen[r.ID] = true
+		if remoteSet[r.ID] {
+			r.SyncStatus = run.SyncStatusSynced
+		} else {
+			r.SyncStatus = run.SyncStatusLocal
+		}
 		merged = append(merged, r)
 	}
 
 	for _, r := range remote {
-		if !seen[r.ID] {
+		if !localSet[r.ID] {
+			r.SyncStatus = run.SyncStatusRemote
 			merged = append(merged, r)
 		}
 	}
