@@ -73,6 +73,7 @@ func init() {
 
 func Execute() error {
 	rootCmd.Version = Version
+	serve.Version = Version
 	return rootCmd.Execute()
 }
 
@@ -259,7 +260,7 @@ func runTUI() error {
 		opts.HasChanges = true
 	}
 
-	app := tui.New(store, opts)
+	app := tui.New(store, opts, Version)
 	return app.Run()
 }
 

@@ -61,6 +61,7 @@ type App struct {
 	searchQuery  string
 	showHelp     bool
 	focus        focusPanel
+	version      string
 
 	grid          *ui.Grid
 	runsList      *widgets.List
@@ -84,7 +85,7 @@ type App struct {
 	isOffline bool
 }
 
-func New(store storage.Store, opts storage.ListOptions) *App {
+func New(store storage.Store, opts storage.ListOptions, version string) *App {
 	a := &App{
 		store:       store,
 		listOpts:    opts,
@@ -93,6 +94,7 @@ func New(store storage.Store, opts storage.ListOptions) *App {
 		showHelp:    true,
 		viewMode:    viewModeDetails,
 		syncStatus:  make(map[string]syncStatus),
+		version:     version,
 	}
 	if h, ok := store.(*storage.HybridStore); ok {
 		a.hybrid = h
@@ -247,11 +249,7 @@ func (a *App) initWidgets() {
 	a.footerWidget.Border = true
 	a.footerWidget.BorderStyle.Fg = ui.ColorWhite
 	a.footerWidget.TextStyle.Fg = ui.ColorWhite
-	if a.hybrid != nil {
-		a.footerWidget.Text = _footerTextS3
-	} else {
-		a.footerWidget.Text = _footerText
-	}
+	a.updateFooterText()
 }
 
 func (a *App) setupGrid() {
@@ -353,6 +351,25 @@ func (a *App) updateTabsText() {
 	}
 
 	a.tabsWidget.Text = strings.Join(parts, " │ ")
+}
+
+func (a *App) updateFooterText() {
+	if a.footerWidget == nil {
+		return
+	}
+
+	var text string
+	if a.hybrid != nil {
+		text = _footerTextS3
+	} else {
+		text = _footerText
+	}
+
+	if a.version != "" {
+		text += fmt.Sprintf(" · [%s](fg:cyan)", a.version)
+	}
+
+	a.footerWidget.Text = text
 }
 
 func (a *App) updateFiltersText() {

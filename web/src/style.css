@@ -801,6 +801,11 @@ body {
   font-family: var(--font-mono);
 }
 
+.footer-version {
+  font-family: var(--font-mono);
+  color: var(--color-primary);
+}
+
 .help-modal {
   position: fixed;
   inset: 0;

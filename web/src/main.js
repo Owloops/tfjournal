@@ -66,6 +66,17 @@ async function fetchOutput(id) {
   return response.text()
 }
 
+async function fetchVersion() {
+  try {
+    const response = await fetch('/api/version')
+    if (!response.ok) return null
+    const data = await response.json()
+    return data.version
+  } catch {
+    return null
+  }
+}
+
 function formatTimestamp(timestamp) {
   const date = new Date(timestamp)
   return date.toLocaleDateString('en-US', {
@@ -734,4 +745,13 @@ helpModal.addEventListener('click', (e) => {
 
 document.addEventListener('keydown', handleKeyDown)
 
+async function loadVersion() {
+  const version = await fetchVersion()
+  const footerVersion = document.getElementById('footerVersion')
+  if (version && footerVersion) {
+    footerVersion.textContent = version
+  }
+}
+
 loadRuns()
+loadVersion()

@@ -32,6 +32,8 @@ var (
 	_bindAddr string
 )
 
+var Version = "dev"
+
 var Cmd = &cobra.Command{
 	Use:   "serve",
 	Short: "Start web UI server",
@@ -111,6 +113,7 @@ func newHandler(store storage.Store) *handler {
 	h.mux.HandleFunc("GET /api/runs", h.handleListRuns)
 	h.mux.HandleFunc("GET /api/runs/{id}", h.handleGetRun)
 	h.mux.HandleFunc("GET /api/runs/{id}/output", h.handleGetOutput)
+	h.mux.HandleFunc("GET /api/version", h.handleGetVersion)
 
 	distSubFS, _ := fs.Sub(distFS, "dist")
 	h.mux.Handle("GET /", http.FileServer(http.FS(distSubFS)))
@@ -230,4 +233,8 @@ func (h *handler) jsonError(w http.ResponseWriter, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
+}
+
+func (h *handler) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
+	h.jsonResponse(w, map[string]string{"version": Version})
 }
