@@ -17,7 +17,7 @@ func TestStore_SaveAndGetRun(t *testing.T) {
 	}
 
 	r := &run.Run{
-		ID:        "run_test123",
+		ID:        "run_abc12345",
 		Workspace: "production/web",
 		Timestamp: time.Now().Truncate(time.Second),
 		Status:    run.StatusSuccess,
@@ -30,13 +30,13 @@ func TestStore_SaveAndGetRun(t *testing.T) {
 		t.Fatalf("failed to save run: %v", err)
 	}
 
-	got, err := store.GetRun("run_test123")
+	got, err := store.GetRun("run_abc12345")
 	if err != nil {
 		t.Fatalf("failed to get run: %v", err)
 	}
 
-	if got.ID != r.ID {
-		t.Errorf("ID = %s, want %s", got.ID, r.ID)
+	if got.ID != "run_abc12345" {
+		t.Errorf("ID = %s, want run_abc12345", got.ID)
 	}
 	if got.Workspace != r.Workspace {
 		t.Errorf("Workspace = %s, want %s", got.Workspace, r.Workspace)
@@ -70,9 +70,9 @@ func TestStore_ListRuns(t *testing.T) {
 	}
 
 	runs := []*run.Run{
-		{ID: "run_001", Workspace: "prod/web", Timestamp: time.Now().Add(-3 * time.Hour), Status: run.StatusSuccess, User: "alice"},
-		{ID: "run_002", Workspace: "prod/api", Timestamp: time.Now().Add(-2 * time.Hour), Status: run.StatusFailed, User: "bob"},
-		{ID: "run_003", Workspace: "dev/web", Timestamp: time.Now().Add(-1 * time.Hour), Status: run.StatusSuccess, User: "alice"},
+		{ID: "run_00000001", Workspace: "prod/web", Timestamp: time.Now().Add(-3 * time.Hour), Status: run.StatusSuccess, User: "alice"},
+		{ID: "run_00000002", Workspace: "prod/api", Timestamp: time.Now().Add(-2 * time.Hour), Status: run.StatusFailed, User: "bob"},
+		{ID: "run_00000003", Workspace: "dev/web", Timestamp: time.Now().Add(-1 * time.Hour), Status: run.StatusSuccess, User: "alice"},
 	}
 
 	for _, r := range runs {
@@ -89,8 +89,8 @@ func TestStore_ListRuns(t *testing.T) {
 		if len(got) != 3 {
 			t.Errorf("got %d runs, want 3", len(got))
 		}
-		if got[0].ID != "run_003" {
-			t.Errorf("first run = %s, want run_003 (most recent)", got[0].ID)
+		if got[0].ID != "run_00000003" {
+			t.Errorf("first run = %s, want run_00000003 (most recent)", got[0].ID)
 		}
 	})
 
@@ -102,8 +102,8 @@ func TestStore_ListRuns(t *testing.T) {
 		if len(got) != 1 {
 			t.Errorf("got %d runs, want 1", len(got))
 		}
-		if got[0].ID != "run_002" {
-			t.Errorf("run ID = %s, want run_002", got[0].ID)
+		if got[0].ID != "run_00000002" {
+			t.Errorf("run ID = %s, want run_00000002", got[0].ID)
 		}
 	})
 
@@ -137,11 +137,11 @@ func TestStore_SaveAndGetOutput(t *testing.T) {
 
 	output := []byte("terraform apply output here\nApply complete!")
 
-	if err := store.SaveOutput("run_test123", output); err != nil {
+	if err := store.SaveOutput("run_abc12345", output); err != nil {
 		t.Fatalf("failed to save output: %v", err)
 	}
 
-	got, err := store.GetOutput("run_test123")
+	got, err := store.GetOutput("run_abc12345")
 	if err != nil {
 		t.Fatalf("failed to get output: %v", err)
 	}
@@ -158,20 +158,20 @@ func TestStore_DirectoryStructure(t *testing.T) {
 		t.Fatalf("failed to create store: %v", err)
 	}
 
-	r := &run.Run{ID: "run_struct", Workspace: "test", Timestamp: time.Now(), Status: run.StatusSuccess}
+	r := &run.Run{ID: "run_aabbccdd", Workspace: "test", Timestamp: time.Now(), Status: run.StatusSuccess}
 	if err := store.SaveRun(r); err != nil {
 		t.Fatalf("failed to save run: %v", err)
 	}
-	if err := store.SaveOutput("run_struct", []byte("output")); err != nil {
+	if err := store.SaveOutput("run_aabbccdd", []byte("output")); err != nil {
 		t.Fatalf("failed to save output: %v", err)
 	}
 
-	runFile := filepath.Join(dir, "runs", "run_struct.json")
+	runFile := filepath.Join(dir, "runs", "run_aabbccdd.json")
 	if _, err := os.Stat(runFile); os.IsNotExist(err) {
 		t.Errorf("run file not created at %s", runFile)
 	}
 
-	outputFile := filepath.Join(dir, "outputs", "run_struct.txt")
+	outputFile := filepath.Join(dir, "outputs", "run_aabbccdd.txt")
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
 		t.Errorf("output file not created at %s", outputFile)
 	}

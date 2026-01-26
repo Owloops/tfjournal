@@ -40,11 +40,15 @@ func (s *LocalStore) SaveRun(r *run.Run) error {
 }
 
 func (s *LocalStore) GetRun(id string) (*run.Run, error) {
+	if err := run.ValidateID(id); err != nil {
+		return nil, ErrInvalidRunID
+	}
+
 	path := s.runPath(id)
 	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
-			return nil, fmt.Errorf("run not found: %s", id)
+			return nil, ErrRunNotFound
 		}
 		return nil, err
 	}
@@ -101,7 +105,18 @@ func (s *LocalStore) SaveOutput(runID string, output []byte) error {
 }
 
 func (s *LocalStore) GetOutput(runID string) ([]byte, error) {
-	return os.ReadFile(s.outputPath(runID))
+	if err := run.ValidateID(runID); err != nil {
+		return nil, ErrInvalidRunID
+	}
+
+	data, err := os.ReadFile(s.outputPath(runID))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, ErrOutputNotFound
+		}
+		return nil, err
+	}
+	return data, nil
 }
 
 func (s *LocalStore) OutputPath(runID string) string {

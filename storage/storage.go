@@ -1,6 +1,7 @@
 package storage
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -8,6 +9,12 @@ import (
 	"time"
 
 	"github.com/Owloops/tfjournal/run"
+)
+
+var (
+	ErrRunNotFound    = errors.New("run not found")
+	ErrOutputNotFound = errors.New("output not found")
+	ErrInvalidRunID   = errors.New("invalid run ID")
 )
 
 const (

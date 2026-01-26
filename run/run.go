@@ -3,7 +3,10 @@ package run
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -100,4 +103,25 @@ func (r *Run) ChangeSummary() string {
 
 func formatChanges(add, change, destroy int) string {
 	return "+" + strconv.Itoa(add) + " ~" + strconv.Itoa(change) + " -" + strconv.Itoa(destroy)
+}
+
+var idPattern = regexp.MustCompile(`^run_[0-9a-f]{8}$`)
+
+func ValidateID(id string) error {
+	if !idPattern.MatchString(id) {
+		return fmt.Errorf("invalid run ID format: %s", id)
+	}
+	return nil
+}
+
+func ParseDuration(s string) (time.Duration, error) {
+	if strings.HasSuffix(s, "d") {
+		days := strings.TrimSuffix(s, "d")
+		var d int
+		if _, err := fmt.Sscanf(days, "%d", &d); err != nil {
+			return 0, fmt.Errorf("invalid day duration: %s", s)
+		}
+		return time.Duration(d) * 24 * time.Hour, nil
+	}
+	return time.ParseDuration(s)
 }

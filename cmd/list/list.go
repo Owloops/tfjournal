@@ -72,7 +72,7 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 
 	if since != "" {
-		d, err := parseDuration(since)
+		d, err := run.ParseDuration(since)
 		if err != nil {
 			return fmt.Errorf("invalid duration: %w", err)
 		}
@@ -154,16 +154,4 @@ func statusIcon(s run.Status) string {
 	default:
 		return string(s)
 	}
-}
-
-func parseDuration(s string) (time.Duration, error) {
-	if strings.HasSuffix(s, "d") {
-		days := strings.TrimSuffix(s, "d")
-		var d int
-		if _, err := fmt.Sscanf(days, "%d", &d); err != nil {
-			return 0, err
-		}
-		return time.Duration(d) * 24 * time.Hour, nil
-	}
-	return time.ParseDuration(s)
 }

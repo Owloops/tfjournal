@@ -3,7 +3,6 @@ package root
 import (
 	"fmt"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/spf13/cobra"
@@ -103,7 +102,7 @@ func runTUI() error {
 
 	opts := storage.ListOptions{Limit: limit}
 	if since != "" {
-		d, err := parseDuration(since)
+		d, err := run.ParseDuration(since)
 		if err != nil {
 			return fmt.Errorf("invalid duration: %w", err)
 		}
@@ -127,16 +126,4 @@ func runTUI() error {
 
 	app := tui.New(store, opts, Version)
 	return app.Run()
-}
-
-func parseDuration(s string) (time.Duration, error) {
-	if strings.HasSuffix(s, "d") {
-		days := strings.TrimSuffix(s, "d")
-		var d int
-		if _, err := fmt.Sscanf(days, "%d", &d); err != nil {
-			return 0, err
-		}
-		return time.Duration(d) * 24 * time.Hour, nil
-	}
-	return time.ParseDuration(s)
 }

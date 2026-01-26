@@ -4,10 +4,10 @@ import (
 	"crypto/subtle"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/Owloops/tfjournal/run"
@@ -81,7 +81,7 @@ func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if since := r.URL.Query().Get("since"); since != "" {
-		if d, err := parseDuration(since); err == nil {
+		if d, err := run.ParseDuration(since); err == nil {
 			opts.Since = time.Now().Add(-d)
 		}
 	}
@@ -116,8 +116,12 @@ func (s *Server) handleGetRun(w http.ResponseWriter, r *http.Request) {
 
 	run, err := s.store.GetRun(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
+		if errors.Is(err, storage.ErrRunNotFound) {
 			s.jsonError(w, "run not found", http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, storage.ErrInvalidRunID) {
+			s.jsonError(w, "invalid run id", http.StatusBadRequest)
 			return
 		}
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
@@ -136,8 +140,12 @@ func (s *Server) handleGetOutput(w http.ResponseWriter, r *http.Request) {
 
 	output, err := s.store.GetOutput(id)
 	if err != nil {
-		if strings.Contains(err.Error(), "no such file") {
+		if errors.Is(err, storage.ErrOutputNotFound) {
 			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if errors.Is(err, storage.ErrInvalidRunID) {
+			s.jsonError(w, "invalid run id", http.StatusBadRequest)
 			return
 		}
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
@@ -161,16 +169,4 @@ func (s *Server) jsonError(w http.ResponseWriter, message string, status int) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(map[string]string{"error": message})
-}
-
-func parseDuration(s string) (time.Duration, error) {
-	if strings.HasSuffix(s, "d") {
-		days := strings.TrimSuffix(s, "d")
-		var d int
-		if _, err := fmt.Sscanf(days, "%d", &d); err != nil {
-			return 0, err
-		}
-		return time.Duration(d) * 24 * time.Hour, nil
-	}
-	return time.ParseDuration(s)
 }

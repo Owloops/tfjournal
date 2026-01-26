@@ -18,8 +18,9 @@ import (
 )
 
 type Result struct {
-	Run      *run.Run
-	ExitCode int
+	Run       *run.Run
+	ExitCode  int
+	SaveError error
 }
 
 func Record(store storage.Store, workspace string, args []string) (*Result, error) {
@@ -62,16 +63,21 @@ func Record(store storage.Store, workspace string, args []string) (*Result, erro
 	r.Resources = result.Resources
 	r.OutputFile = store.OutputPath(r.ID)
 
+	var saveErr error
 	if err := store.SaveRun(r); err != nil {
+		saveErr = err
 		fmt.Fprintf(os.Stderr, "tfjournal: failed to save run: %v\n", err)
 	}
 
 	cleanOutput := parser.StripAnsi(string(output))
 	if err := store.SaveOutput(r.ID, []byte(cleanOutput)); err != nil {
+		if saveErr == nil {
+			saveErr = err
+		}
 		fmt.Fprintf(os.Stderr, "tfjournal: failed to save output: %v\n", err)
 	}
 
-	return &Result{Run: r, ExitCode: exitCode}, nil
+	return &Result{Run: r, ExitCode: exitCode, SaveError: saveErr}, nil
 }
 
 func PrintSummary(r *run.Run) {
