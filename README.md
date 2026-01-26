@@ -95,7 +95,7 @@ tfjournal
 
 # List runs
 tfjournal list
-tfjournal list --since 7d --failed
+tfjournal list --since 7d --status failed
 
 # Show run details
 tfjournal show run_abc123
@@ -158,6 +158,29 @@ With S3 configured:
 - `✓` local and S3
 - `↓` local only
 - `↑` S3 only
+
+## Web UI
+
+```bash
+tfjournal serve
+```
+
+Opens at http://localhost:8080. Same features as TUI with mouse support.
+
+### Configuration
+
+| Env var | Flag | Default | Description |
+|---------|------|---------|-------------|
+| `TFJOURNAL_PORT` | `--port, -p` | `8080` | Port to listen on |
+| `TFJOURNAL_BIND` | `--bind, -b` | `127.0.0.1` | Address to bind to |
+| `TFJOURNAL_USERNAME` | - | - | Basic auth username |
+| `TFJOURNAL_PASSWORD` | - | - | Basic auth password |
+
+Enable basic auth when exposing beyond localhost:
+
+```bash
+TFJOURNAL_USERNAME=admin TFJOURNAL_PASSWORD=secret tfjournal serve --bind 0.0.0.0
+```
 
 ## S3 Backend
 
@@ -245,11 +268,14 @@ Override with `TFJOURNAL_STORAGE_PATH`.
 tfjournal list [workspace-pattern] [flags]
 
 Flags:
-  --since string   Filter by time (7d, 24h)
-  --user string    Filter by user
-  --failed         Only failed runs
-  -n, --limit int  Max runs (default: 20)
-  --json           JSON output
+  --since string     Filter by time (7d, 24h)
+  --user string      Filter by user
+  --status string    Filter by status (success, failed)
+  --program string   Filter by program (terraform, tofu, terragrunt)
+  --branch string    Filter by git branch
+  --has-changes      Only runs with actual changes
+  -n, --limit int    Max runs (default: 20)
+  --json             JSON output
 ```
 
 ### show

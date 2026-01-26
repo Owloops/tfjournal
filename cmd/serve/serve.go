@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -50,8 +51,25 @@ func runServe(cmd *cobra.Command, args []string) error {
 	}
 	defer func() { _ = store.Close() }()
 
+	port := _port
+	bind := _bindAddr
+
+	if !cmd.Flags().Changed("port") {
+		if envPort := os.Getenv("TFJOURNAL_PORT"); envPort != "" {
+			if p, err := strconv.Atoi(envPort); err == nil {
+				port = p
+			}
+		}
+	}
+
+	if !cmd.Flags().Changed("bind") {
+		if envBind := os.Getenv("TFJOURNAL_BIND"); envBind != "" {
+			bind = envBind
+		}
+	}
+
 	h := newHandler(store)
-	addr := fmt.Sprintf("%s:%d", _bindAddr, _port)
+	addr := fmt.Sprintf("%s:%d", bind, port)
 
 	username := os.Getenv("TFJOURNAL_USERNAME")
 	password := os.Getenv("TFJOURNAL_PASSWORD")
