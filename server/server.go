@@ -33,9 +33,11 @@ func New(store storage.Store) *Server {
 	}
 
 	s.mux.HandleFunc("GET /api/runs", s.handleListRuns)
+	s.mux.HandleFunc("GET /api/runs/local", s.handleListRunsLocal)
 	s.mux.HandleFunc("GET /api/runs/{id}", s.handleGetRun)
 	s.mux.HandleFunc("GET /api/runs/{id}/output", s.handleGetOutput)
 	s.mux.HandleFunc("GET /api/version", s.handleGetVersion)
+	s.mux.HandleFunc("POST /api/sync", s.handleSync)
 
 	distSubFS, _ := fs.Sub(distFS, "dist")
 	s.mux.Handle("GET /", http.FileServer(http.FS(distSubFS)))
@@ -61,43 +63,51 @@ func (s *Server) WithBasicAuth(username, password string) http.Handler {
 	})
 }
 
-func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
+func (s *Server) parseListOptions(r *http.Request) storage.ListOptions {
 	opts := storage.ListOptions{Limit: DefaultLimit}
 
 	if status := r.URL.Query().Get("status"); status != "" {
 		opts.Status = run.Status(status)
 	}
-
 	if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
 		_, _ = fmt.Sscanf(limitStr, "%d", &opts.Limit)
 	}
-
 	if workspace := r.URL.Query().Get("workspace"); workspace != "" {
 		opts.Workspace = workspace
 	}
-
 	if user := r.URL.Query().Get("user"); user != "" {
 		opts.User = user
 	}
-
 	if since := r.URL.Query().Get("since"); since != "" {
 		if d, err := run.ParseDuration(since); err == nil {
 			opts.Since = time.Now().Add(-d)
 		}
 	}
-
 	if program := r.URL.Query().Get("program"); program != "" {
 		opts.Program = program
 	}
-
 	if branch := r.URL.Query().Get("branch"); branch != "" {
 		opts.Branch = branch
 	}
-
 	if r.URL.Query().Get("has-changes") == "true" {
 		opts.HasChanges = true
 	}
 
+	return opts
+}
+
+func (s *Server) handleListRunsLocal(w http.ResponseWriter, r *http.Request) {
+	opts := s.parseListOptions(r)
+	runs, err := s.store.ListRunsLocal(opts)
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.jsonResponse(w, runs)
+}
+
+func (s *Server) handleListRuns(w http.ResponseWriter, r *http.Request) {
+	opts := s.parseListOptions(r)
 	runs, err := s.store.ListRuns(opts)
 	if err != nil {
 		s.jsonError(w, err.Error(), http.StatusInternalServerError)
@@ -158,6 +168,15 @@ func (s *Server) handleGetOutput(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 	s.jsonResponse(w, map[string]string{"version": Version})
+}
+
+func (s *Server) handleSync(w http.ResponseWriter, _ *http.Request) {
+	result, err := s.store.Sync()
+	if err != nil {
+		s.jsonError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	s.jsonResponse(w, result)
 }
 
 func (s *Server) jsonResponse(w http.ResponseWriter, data any) {
