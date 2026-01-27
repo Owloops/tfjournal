@@ -834,26 +834,18 @@ body {
   color: var(--color-primary);
 }
 
-.sync-btn {
+.footer-sync {
   font-family: var(--font-mono);
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-  background: transparent;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 0.125rem 0.5rem;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  transition: color var(--transition-fast);
 }
 
-.sync-btn:hover {
-  color: var(--color-primary);
-  border-color: var(--color-primary);
+.footer-sync:hover {
+  color: var(--color-text-secondary);
 }
 
-.sync-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.footer-sync.syncing {
+  color: var(--color-accent);
 }
 
 .help-modal {

@@ -22,7 +22,7 @@ coverage.out
 Thumbs.db
 
 # Local plan file (contains personal notes)
-*.local.md
+*.local.*
 
 # Style guide (symlinked from dotfiles)
 GO.style.md

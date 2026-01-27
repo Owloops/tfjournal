@@ -21,7 +21,8 @@ const state = {
   hasChangesFilter: false,
   limit: 20,
   focusPanel: 'runs',
-  showHelp: false
+  showHelp: false,
+  s3Enabled: false
 }
 
 const runsList = document.getElementById('runsList')
@@ -83,6 +84,16 @@ async function fetchVersion() {
     if (!response.ok) return null
     const data = await response.json()
     return data.version
+  } catch {
+    return null
+  }
+}
+
+async function fetchConfig() {
+  try {
+    const response = await fetch('/api/config')
+    if (!response.ok) return null
+    return response.json()
   } catch {
     return null
   }
@@ -699,8 +710,10 @@ function handleKeyDown(e) {
       e.preventDefault()
       break
     case 's':
-      syncRuns()
-      e.preventDefault()
+      if (state.s3Enabled) {
+        syncRuns()
+        e.preventDefault()
+      }
       break
     case 'Escape':
       state.focusPanel = 'runs'
@@ -822,30 +835,45 @@ async function loadVersion() {
   }
 }
 
+async function loadConfig() {
+  const config = await fetchConfig()
+  if (config) {
+    state.s3Enabled = config.s3_enabled
+    const syncBtn = document.getElementById('syncBtn')
+    const syncSep = document.getElementById('syncSep')
+    if (syncBtn) {
+      syncBtn.style.display = state.s3Enabled ? '' : 'none'
+    }
+    if (syncSep) {
+      syncSep.style.display = state.s3Enabled ? '' : 'none'
+    }
+  }
+}
+
 async function syncRuns() {
   const syncBtn = document.getElementById('syncBtn')
-  if (!syncBtn) return
+  if (!syncBtn || syncBtn.classList.contains('syncing')) return
 
   const originalText = syncBtn.textContent
   syncBtn.textContent = 'syncing...'
-  syncBtn.disabled = true
+  syncBtn.classList.add('syncing')
 
   try {
     const response = await fetch('/api/sync', { method: 'POST' })
     if (!response.ok) throw new Error('Sync failed')
     const result = await response.json()
-    syncBtn.textContent = `✓ ↑${result.uploaded} ↓${result.downloaded}`
+    syncBtn.textContent = `✓ ↑${result.uploaded}`
     setTimeout(() => {
       syncBtn.textContent = originalText
+      syncBtn.classList.remove('syncing')
     }, 2000)
     loadRuns()
   } catch {
-    syncBtn.textContent = '✗ sync failed'
+    syncBtn.textContent = '✗ failed'
     setTimeout(() => {
       syncBtn.textContent = originalText
+      syncBtn.classList.remove('syncing')
     }, 2000)
-  } finally {
-    syncBtn.disabled = false
   }
 }
 
@@ -918,6 +946,7 @@ async function init() {
   }
 
   loadVersion()
+  loadConfig()
 }
 
 init()

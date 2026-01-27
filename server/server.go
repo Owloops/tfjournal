@@ -24,12 +24,15 @@ var distFS embed.FS
 type Server struct {
 	store storage.Store
 	mux   *http.ServeMux
+	hasS3 bool
 }
 
 func New(store storage.Store) *Server {
+	_, hasS3 := store.(*storage.HybridStore)
 	s := &Server{
 		store: store,
 		mux:   http.NewServeMux(),
+		hasS3: hasS3,
 	}
 
 	s.mux.HandleFunc("GET /api/runs", s.handleListRuns)
@@ -37,6 +40,7 @@ func New(store storage.Store) *Server {
 	s.mux.HandleFunc("GET /api/runs/{id}", s.handleGetRun)
 	s.mux.HandleFunc("GET /api/runs/{id}/output", s.handleGetOutput)
 	s.mux.HandleFunc("GET /api/version", s.handleGetVersion)
+	s.mux.HandleFunc("GET /api/config", s.handleGetConfig)
 	s.mux.HandleFunc("POST /api/sync", s.handleSync)
 
 	distSubFS, _ := fs.Sub(distFS, "dist")
@@ -168,6 +172,10 @@ func (s *Server) handleGetOutput(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleGetVersion(w http.ResponseWriter, _ *http.Request) {
 	s.jsonResponse(w, map[string]string{"version": Version})
+}
+
+func (s *Server) handleGetConfig(w http.ResponseWriter, _ *http.Request) {
+	s.jsonResponse(w, map[string]bool{"s3_enabled": s.hasS3})
 }
 
 func (s *Server) handleSync(w http.ResponseWriter, _ *http.Request) {
