@@ -98,6 +98,7 @@ tfjournal
 # List runs
 tfjournal list
 tfjournal list --since 7d --status failed
+tfjournal list --action apply
 
 # Show run details
 tfjournal show run_abc123
@@ -228,6 +229,7 @@ Flags:
   --user string      Filter by user
   --status string    Filter by status (success, failed)
   --program string   Filter by program (terraform, tofu, terragrunt)
+  --action string    Filter by action (plan, apply, destroy, import, taint)
   --branch string    Filter by git branch
   --has-changes      Only runs with actual changes
   -n, --limit int    Max runs (default: 20)

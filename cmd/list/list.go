@@ -19,6 +19,7 @@ var (
 	user       string
 	status     string
 	program    string
+	action     string
 	branch     string
 	hasChanges bool
 	limit      int
@@ -35,6 +36,7 @@ Example:
   tfjournal list --since 7d
   tfjournal list --status failed
   tfjournal list --program tofu
+  tfjournal list --action apply
   tfjournal list --branch main
   tfjournal list --has-changes
   tfjournal list production/*`,
@@ -46,6 +48,7 @@ func init() {
 	Cmd.Flags().StringVar(&user, "user", "", "Filter by user")
 	Cmd.Flags().StringVar(&status, "status", "", "Filter by status (success, failed)")
 	Cmd.Flags().StringVar(&program, "program", "", "Filter by program (terraform, tofu, terragrunt)")
+	Cmd.Flags().StringVar(&action, "action", "", "Filter by action (plan, apply, destroy, import, taint)")
 	Cmd.Flags().StringVar(&branch, "branch", "", "Filter by git branch")
 	Cmd.Flags().BoolVar(&hasChanges, "has-changes", false, "Show only runs with actual changes")
 	Cmd.Flags().IntVarP(&limit, "limit", "n", 20, "Maximum number of runs to show")
@@ -84,6 +87,9 @@ func runList(cmd *cobra.Command, args []string) error {
 	}
 	if program != "" {
 		opts.Program = program
+	}
+	if action != "" {
+		opts.Action = action
 	}
 	if branch != "" {
 		opts.Branch = branch

@@ -28,6 +28,7 @@ type ListOptions struct {
 	Status     run.Status
 	User       string
 	Program    string
+	Action     string
 	Branch     string
 	HasChanges bool
 	Limit      int
@@ -138,6 +139,10 @@ func matchesFilter(r *run.Run, opts ListOptions) bool {
 	}
 
 	if opts.Program != "" && r.Program != opts.Program {
+		return false
+	}
+
+	if opts.Action != "" && r.Action() != opts.Action {
 		return false
 	}
 

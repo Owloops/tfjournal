@@ -90,6 +90,9 @@ func (s *Server) parseListOptions(r *http.Request) storage.ListOptions {
 	if program := r.URL.Query().Get("program"); program != "" {
 		opts.Program = program
 	}
+	if action := r.URL.Query().Get("action"); action != "" {
+		opts.Action = action
+	}
 	if branch := r.URL.Query().Get("branch"); branch != "" {
 		opts.Branch = branch
 	}

@@ -32,6 +32,9 @@ func matchesQuery(r *run.Run, query string) bool {
 	if strings.Contains(strings.ToLower(string(r.Status)), query) {
 		return true
 	}
+	if strings.Contains(strings.ToLower(r.Action()), query) {
+		return true
+	}
 	if r.Git != nil {
 		if strings.Contains(strings.ToLower(r.Git.Branch), query) {
 			return true

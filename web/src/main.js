@@ -17,6 +17,7 @@ const state = {
   statusFilter: '',
   sinceFilter: '',
   programFilter: '',
+  actionFilter: '',
   branchFilter: '',
   hasChangesFilter: false,
   limit: 20,
@@ -35,6 +36,7 @@ const filterChips = document.getElementById('filterChips')
 const statusFilter = document.getElementById('statusFilter')
 const sinceFilter = document.getElementById('sinceFilter')
 const programFilter = document.getElementById('programFilter')
+const actionFilter = document.getElementById('actionFilter')
 const branchFilter = document.getElementById('branchFilter')
 const hasChangesFilter = document.getElementById('hasChangesFilter')
 const limitFilter = document.getElementById('limitFilter')
@@ -46,6 +48,7 @@ function buildParams() {
   if (state.statusFilter) params.set('status', state.statusFilter)
   if (state.sinceFilter) params.set('since', state.sinceFilter)
   if (state.programFilter) params.set('program', state.programFilter)
+  if (state.actionFilter) params.set('action', state.actionFilter)
   if (state.branchFilter) params.set('branch', state.branchFilter)
   if (state.hasChangesFilter) params.set('has-changes', 'true')
   if (state.limit) params.set('limit', state.limit.toString())
@@ -581,6 +584,12 @@ function getActiveFilters() {
       value: state.programFilter,
       label: `program:${state.programFilter}`
     })
+  if (state.actionFilter)
+    filters.push({
+      key: 'action',
+      value: state.actionFilter,
+      label: `action:${state.actionFilter}`
+    })
   if (state.branchFilter)
     filters.push({
       key: 'branch',
@@ -622,6 +631,10 @@ function clearFilter(key) {
     case 'program':
       state.programFilter = ''
       programFilter.value = ''
+      break
+    case 'action':
+      state.actionFilter = ''
+      actionFilter.value = ''
       break
     case 'branch':
       state.branchFilter = ''
@@ -786,6 +799,13 @@ programFilter.addEventListener('change', (e) => {
   loadRuns()
 })
 
+actionFilter.addEventListener('change', (e) => {
+  state.actionFilter = e.target.value
+  updateFilterUI()
+  updateURL()
+  loadRuns()
+})
+
 branchFilter.addEventListener(
   'input',
   debounce((e) => {
@@ -894,6 +914,7 @@ function updateURL() {
   if (state.statusFilter) params.set('status', state.statusFilter)
   if (state.sinceFilter) params.set('since', state.sinceFilter)
   if (state.programFilter) params.set('program', state.programFilter)
+  if (state.actionFilter) params.set('action', state.actionFilter)
   if (state.branchFilter) params.set('branch', state.branchFilter)
   if (state.hasChangesFilter) params.set('changes', '1')
   if (state.limit !== 20) params.set('limit', state.limit.toString())
@@ -909,6 +930,7 @@ function loadFromURL() {
   state.statusFilter = params.get('status') || ''
   state.sinceFilter = params.get('since') || ''
   state.programFilter = params.get('program') || ''
+  state.actionFilter = params.get('action') || ''
   state.branchFilter = params.get('branch') || ''
   state.hasChangesFilter = params.get('changes') === '1'
   state.limit = parseInt(params.get('limit'), 10) || 20
@@ -918,6 +940,7 @@ function loadFromURL() {
   statusFilter.value = state.statusFilter
   sinceFilter.value = state.sinceFilter
   programFilter.value = state.programFilter
+  actionFilter.value = state.actionFilter
   branchFilter.value = state.branchFilter
   hasChangesFilter.checked = state.hasChangesFilter
   limitFilter.value = state.limit.toString()
