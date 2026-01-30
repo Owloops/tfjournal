@@ -106,3 +106,29 @@ func TestParseDuration(t *testing.T) {
 		})
 	}
 }
+
+func TestRunAction(t *testing.T) {
+	tests := []struct {
+		name    string
+		command []string
+		want    string
+	}{
+		{"apply", []string{"terraform", "apply", "-auto-approve"}, "apply"},
+		{"plan", []string{"terragrunt", "plan"}, "plan"},
+		{"destroy", []string{"tofu", "destroy", "-auto-approve"}, "destroy"},
+		{"import", []string{"terraform", "import", "aws_instance.foo", "i-123"}, "import"},
+		{"taint", []string{"terragrunt", "taint", "random_password.master"}, "taint"},
+		{"init", []string{"terraform", "init"}, "init"},
+		{"empty command", []string{}, ""},
+		{"no action", []string{"terraform"}, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			r := &Run{Command: tt.command}
+			if got := r.Action(); got != tt.want {
+				t.Errorf("Action() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

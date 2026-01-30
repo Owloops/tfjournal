@@ -490,6 +490,7 @@ func (a *App) updateDetailsPane(r *run.Run) {
 [Started:](fg:cyan)    %s
 [Duration:](fg:cyan)   %s
 [Program:](fg:cyan)    %s
+[Command:](fg:cyan)    %s
 [User:](fg:cyan)       %s
 [Changes:](fg:cyan)    %s`,
 		r.ID,
@@ -498,6 +499,7 @@ func (a *App) updateDetailsPane(r *run.Run) {
 		r.Timestamp.Format("2006-01-02 15:04:05"),
 		r.Duration().String(),
 		r.Program,
+		strings.Join(r.Command, " "),
 		r.User,
 		r.ChangeSummary(),
 	)

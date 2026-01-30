@@ -80,6 +80,7 @@ func printRun(r *run.Run) {
 	fmt.Printf("│  %-*s│\n", width-2, fmt.Sprintf("started:   %s", r.Timestamp.Format("2006-01-02 15:04:05")))
 	fmt.Printf("│  %-*s│\n", width-2, fmt.Sprintf("duration:  %s", r.Duration().Round(time.Second)))
 	fmt.Printf("│  %-*s│\n", width-2, fmt.Sprintf("program:   %s", r.Program))
+	fmt.Printf("│  %-*s│\n", width-2, fmt.Sprintf("command:   %s", strings.Join(r.Command, " ")))
 	fmt.Printf("│  %-*s│\n", width-2, fmt.Sprintf("user:      %s", r.User))
 
 	if r.Git != nil {

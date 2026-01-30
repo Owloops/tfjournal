@@ -210,6 +210,10 @@ function renderDetailsView(run) {
             <span class="detail-value">${escapeHtml(run.program || 'terraform')}</span>
           </div>
           <div class="detail-item">
+            <span class="detail-label">Command</span>
+            <span class="detail-value">${escapeHtml((run.command || []).join(' '))}</span>
+          </div>
+          <div class="detail-item">
             <span class="detail-label">User</span>
             <span class="detail-value">${escapeHtml(run.user || 'unknown')}</span>
           </div>

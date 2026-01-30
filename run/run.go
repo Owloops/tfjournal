@@ -92,6 +92,16 @@ func (r *Run) Duration() time.Duration {
 	return time.Duration(r.DurationMs) * time.Millisecond
 }
 
+func (r *Run) Action() string {
+	for _, arg := range r.Command {
+		switch arg {
+		case "plan", "apply", "destroy", "import", "taint", "untaint", "refresh", "state", "init", "validate", "output", "show":
+			return arg
+		}
+	}
+	return ""
+}
+
 func (r *Run) ChangeSummary() string {
 	if r.Changes == nil {
 		return "no changes"

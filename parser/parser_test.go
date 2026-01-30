@@ -79,7 +79,7 @@ func TestParseResources(t *testing.T) {
 	output := `aws_instance.web: Creating...
 aws_instance.web: Creation complete after 45s [id=i-abc123]
 aws_security_group.allow_ssh: Modifying... [id=sg-xyz789]
-aws_security_group.allow_ssh: Modification complete after 2s [id=sg-xyz789]`
+aws_security_group.allow_ssh: Modifications complete after 2s [id=sg-xyz789]`
 
 	result := Parse(output)
 
@@ -102,5 +102,25 @@ aws_security_group.allow_ssh: Modification complete after 2s [id=sg-xyz789]`
 	}
 	if result.Resources[1].Action != "update" {
 		t.Errorf("second resource action = %s, want update", result.Resources[1].Action)
+	}
+	if result.Resources[1].Status != "success" {
+		t.Errorf("second resource status = %s, want success", result.Resources[1].Status)
+	}
+}
+
+func TestParseResourcesModificationSingular(t *testing.T) {
+	output := `aws_security_group.legacy: Modifying... [id=sg-old]
+aws_security_group.legacy: Modification complete after 1s [id=sg-old]`
+
+	result := Parse(output)
+
+	if len(result.Resources) != 1 {
+		t.Fatalf("expected 1 resource, got %d", len(result.Resources))
+	}
+	if result.Resources[0].Status != "success" {
+		t.Errorf("resource status = %s, want success", result.Resources[0].Status)
+	}
+	if result.Resources[0].DurationMs != 1000 {
+		t.Errorf("resource duration = %d, want 1000", result.Resources[0].DurationMs)
 	}
 }

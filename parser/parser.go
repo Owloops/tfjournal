@@ -19,7 +19,7 @@ var (
 	outputChangesRegex  = regexp.MustCompile(`Changes to Outputs:`)
 
 	resourceStartRegex = regexp.MustCompile(`^(.+): (Creating|Modifying|Destroying)\.\.\.`)
-	resourceEndRegex   = regexp.MustCompile(`^(.+): (Creation|Modification|Destruction) complete after ([0-9a-z]+)`)
+	resourceEndRegex   = regexp.MustCompile(`^(.+): (Creation|Modifications?|Destruction) complete after ([0-9a-z]+)`)
 )
 
 func StripAnsi(s string) string {

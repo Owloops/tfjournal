@@ -12,6 +12,11 @@ linters:
     - unused
     - goconst
     - misspell
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - goconst
 
 formatters:
   enable:
